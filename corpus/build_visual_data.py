@@ -30,7 +30,7 @@ def put(family,i,topics,title,xlabel,ylabel,xs,ys,params,equation,assumptions):
     rows.append(rec)
     model_defs[family]={k:v for k,v in rec.items() if k not in ('points','id','parameters')}
 
-for i in range(1,41):
+for i in range(1,101):
     n=.05+.005*i; T=280+i
     xs=grid(1,10); ys=[n*.08206*T/x for x in xs]
     put('gas_pv',i,['3.4'],'Pressure and volume','Volume (L)','Pressure (atm)',xs,ys,dict(n=n,T=T),'P=nRT/V','Ideal gas; fixed amount and Kelvin temperature.')
@@ -86,7 +86,7 @@ for i in range(1,41):
     ctotal=.2+i*.002; kf=.02; kr=.005+i*.0003; beq=ctotal*kf/(kf+kr); xs=grid(0,200); ys=[beq*(1-math.exp(-(kf+kr)*x)) for x in xs]
     assert all(0<=y<=ctotal for y in ys)
     put('reversible_relaxation',i,['7.1','7.8'],'Approach to equilibrium','Time (s)','Product concentration (mol/L)',xs,ys,dict(total=ctotal,kf=kf,kr=kr),'B=total*kf/(kf+kr)*(1-exp(-(kf+kr)t))','Closed ideal first-order A <-> B at fixed volume; initially all A; temperature fixed.')
-    f=.1+i*.015; xs=grid(19,23); width=.04; ys=[f*math.exp(-.5*((x-20)/width)**2)+(1-f)*math.exp(-.5*((x-22)/width)**2) for x in xs]
+    f=.1+i*.006; xs=grid(19,23); width=.04; ys=[f*math.exp(-.5*((x-20)/width)**2)+(1-f)*math.exp(-.5*((x-22)/width)**2) for x in xs]
     put('synthetic_mass_spectrum',i,['1.2'],'Two-isotope spectrum illustration','Mass (u)','Relative model signal',xs,ys,dict(fraction_mass20=f,width=width),'Two equal-width Gaussian peaks with abundance-weighted amplitudes','Artificial two-isotope element; broadened schematic, not measured instrument data; areas proportional to abundance.')
     qA=.4+i*.02; xs=grid(60,180); ys=[math.sqrt(max(0,2*qA*qA*(1+math.cos(x*math.pi/180)))) for x in xs]
     put('bond_dipole_sum',i,['2.7'],'Two-bond dipole sum','Bond angle (degrees)','Net dipole (relative units)',xs,ys,dict(each_bond_dipole=qA),'mu_net=sqrt(2 mu^2 (1+cos theta))','Vector sum of two equal bond dipoles; schematic, not a complete quantum molecular dipole calculation.')

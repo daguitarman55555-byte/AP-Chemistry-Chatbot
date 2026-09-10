@@ -5,6 +5,7 @@ import math
 import re
 import sqlite3
 from pathlib import Path
+from units import convert
 
 NUMBER=re.compile(r'^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$')
 
@@ -44,8 +45,9 @@ class TutorSession:
         if not math.isfinite(value):return {'status':'invalid_number','message':'Enter a finite number.'}
         self._attempts+=1
         expected_unit=self._solution.get('answer_unit')
-        if expected_unit and expected_unit!='dimensionless' and unit!=expected_unit:
-            return {'status':'units_needed','message':f'Use the requested unit: {expected_unit}. Unit conversion is not implemented in this prototype.'}
+        try: value=convert(value,unit or '',expected_unit)
+        except ValueError:
+            return {'status':'units_needed','message':f'Use {expected_unit or "dimensionless"} or a supported equivalent unit. Check the physical quantity and unit capitalization.'}
         correct=math.isclose(value,self._solution['answer'],rel_tol=self._solution.get('relative_tolerance') or 0,
                             abs_tol=self._solution.get('absolute_tolerance') or 0)
         if correct:

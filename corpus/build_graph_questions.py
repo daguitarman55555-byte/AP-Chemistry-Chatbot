@@ -58,7 +58,7 @@ for c in coverage:
     con.execute('UPDATE coverage_targets SET authored_types=?,data_json=? WHERE topic_id=?',(len(families),json.dumps(c),c['topic_id']))
 (ROOT/'coverage_200_types_per_topic.json').write_text(json.dumps(coverage,indent=2))
 con.commit();con.close()
-report=json.loads((ROOT/'validation_report.json').read_text());report.update(original_questions=len(data['questions']),graph_reading_questions=3840,
+report=json.loads((ROOT/'validation_report.json').read_text());report.update(original_questions=len(data['questions']),graph_reading_questions=sum(q['id'].startswith('G-') for q in data['questions']),
     hints=len(data['hints']),distinct_authored_families=len(set(q['family_id'] for q in data['questions'])),
     per_unit_question_counts=dict(collections.Counter(int(q['topic_id'].split('.')[0]) for q in data['questions'])))
 (ROOT/'validation_report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
