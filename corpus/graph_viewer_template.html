@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chemistry graph explorer</title>
+<style>
+:root{color-scheme:light dark;--bg:#f9fafb;--fg:#192733;--muted:#526171;--line:#d0d7df;--series:#086b93;--point:#9b3a16}
+@media(prefers-color-scheme:dark){:root{--bg:#141b22;--fg:#edf2f7;--muted:#b3c0ce;--line:#485666;--series:#6dc9ed;--point:#ffb58c}}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;margin:0;padding:24px;max-width:1100px;margin-inline:auto}h1{font-size:28px;margin:0 0 8px}p{max-width:85ch}.muted{color:var(--muted)}label{display:flex;flex-direction:column;gap:6px;min-width:0}select,input,button{font:inherit;max-width:100%;color:inherit}select,button{padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:4px}button{cursor:pointer}input{accent-color:var(--series)}.controls{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}.wide{grid-column:1/-1}svg{display:block;width:100%;height:390px;overflow:visible}svg text{fill:var(--fg);font:12px system-ui}.readout{min-height:48px;font-variant-numeric:tabular-nums}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.tablewrap{max-height:300px;overflow:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:right}th{position:sticky;top:0;background:var(--bg)}@media(max-width:550px){body{padding:14px}.controls{grid-template-columns:1fr}svg{height:340px}h1{font-size:23px}}
+</style></head><body>
+<h1>Chemistry graph explorer</h1>
+<p class="muted">960 original model datasets · 24 graph families · exploration preview</p>
+<p>Choose a model, vary its parameter set, and inspect the curve. These are calculated teaching models, not measured experimental data or PhET outputs. This preview is separate from guided question mode.</p>
+<div class="controls">
+<label>Graph family<select id="family"></select></label>
+<label>Parameter set <output id="caseLabel">1 of 40</output><input id="case" aria-label="Parameter set" type="range" min="0" max="39" value="0" step="1"></label>
+</div>
+<h2 id="plotTitle"></h2><div id="plot"><svg id="chart" role="img" aria-labelledby="chartTitle chartDesc"></svg></div>
+<label>Inspect a sampled point<input id="point" aria-label="Sampled point" type="range" min="0" max="200" value="100" step="1"></label>
+<p class="readout" id="readout" aria-live="polite"></p>
+<p id="assumptions"></p><details><summary>Model and parameters</summary><pre id="params"></pre></details>
+<details><summary>Accessible data table</summary><div class="tablewrap"><table><thead><tr><th id="xhead"></th><th id="yhead"></th></tr></thead><tbody id="tablebody"></tbody></table></div></details>
+<p class="muted">For a future tutor: use an allowlisted model and only the data approved for the current exercise. Do not pass hidden answers or solved-task curves to the student interface.</p>
+<script id="graph-data" type="application/json">__GRAPH_DATA__</script>
+<script>
+'use strict';
+const rows=JSON.parse(document.getElementById('graph-data').textContent),family=document.getElementById('family'),caseInput=document.getElementById('case'),pointInput=document.getElementById('point'),svg=document.getElementById('chart');
+const byFamily=new Map();for(const row of rows){if(!byFamily.has(row.family_id))byFamily.set(row.family_id,[]);byFamily.get(row.family_id).push(row)}
+for(const [key,list] of byFamily){const o=document.createElement('option');o.value=key;o.textContent=list[0].title;family.append(o)}
+const ns='http://www.w3.org/2000/svg';let selected,scales;
+function el(tag,attrs={},text=''){const node=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))node.setAttribute(k,v);if(text)node.textContent=text;svg.append(node);return node}
+function fmt(x){if(x===0)return'0';return Math.abs(x)>=10000||Math.abs(x)<.001?x.toExponential(3):Number(x.toPrecision(5)).toString()}
+function draw(){
+ selected=byFamily.get(family.value)[Number(caseInput.value)];const pts=selected.points;
+ document.getElementById('caseLabel').textContent=`${Number(caseInput.value)+1} of 40`;
+ document.getElementById('plotTitle').textContent=selected.title;
+ document.getElementById('params').textContent=selected.equation+'\n'+JSON.stringify(selected.parameters,null,2);
+ document.getElementById('assumptions').textContent=selected.assumptions;
+ const w=document.getElementById('plot').clientWidth,h=w<550?340:390,L=82,R=24,T=18,B=75;
+ svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+ el('title',{id:'chartTitle'},selected.title);el('desc',{id:'chartDesc'},`${selected.x_label} versus ${selected.y_label}. Use the sample slider or data table for values.`);
+ let xmin=pts[0].x,xmax=pts.at(-1).x,ymin=Math.min(...pts.map(p=>p.y)),ymax=Math.max(...pts.map(p=>p.y));let pad=(ymax-ymin)*.06||1;ymin-=pad;ymax+=pad;
+ const X=x=>L+(x-xmin)/(xmax-xmin)*(w-L-R),Y=y=>h-B-(y-ymin)/(ymax-ymin)*(h-T-B);scales={X,Y,L,R,w,h};
+ el('rect',{x:L,y:T,width:w-L-R,height:h-T-B,fill:'none',stroke:'var(--line)'});
+ for(let j=0;j<=4;j++){let v=xmin+(xmax-xmin)*j/4;el('text',{x:X(v),y:h-B+24,'text-anchor':j===0?'start':j===4?'end':'middle'},fmt(v));}
+ for(let j=0;j<=4;j++){let v=ymin+(ymax-ymin)*j/4;el('line',{x1:L,x2:w-R,y1:Y(v),y2:Y(v),stroke:'var(--line)','stroke-width':.5});el('text',{x:L-8,y:Y(v)+4,'text-anchor':'end'},fmt(v));}
+ el('text',{x:(L+w-R)/2,y:h-18,'text-anchor':'middle'},selected.x_label);
+ el('text',{x:18,y:(T+h-B)/2,transform:`rotate(-90 18 ${(T+h-B)/2})`,'text-anchor':'middle'},selected.y_label);
+ el('path',{d:pts.map((p,j)=>(j?'L':'M')+X(p.x).toFixed(3)+','+Y(p.y).toFixed(3)).join(' '),fill:'none',stroke:'var(--series)','stroke-width':2.5});
+ el('circle',{id:'marker',r:5,fill:'var(--point)'});
+ document.getElementById('xhead').textContent=selected.x_label;document.getElementById('yhead').textContent=selected.y_label;
+ const tb=document.getElementById('tablebody');tb.replaceChildren();for(const p of pts){const tr=document.createElement('tr');for(const v of [p.x,p.y]){const td=document.createElement('td');td.textContent=v.toPrecision(10);tr.append(td)}tb.append(tr)}inspect();
+}
+function inspect(){const p=selected.points[Number(pointInput.value)],m=document.getElementById('marker');m.setAttribute('cx',scales.X(p.x));m.setAttribute('cy',scales.Y(p.y));document.getElementById('readout').textContent=`${selected.x_label}: ${fmt(p.x)} · ${selected.y_label}: ${fmt(p.y)}`;}
+family.addEventListener('change',draw);caseInput.addEventListener('input',draw);pointInput.addEventListener('input',inspect);
+svg.addEventListener('pointerdown',e=>{const rect=svg.getBoundingClientRect(),x=e.clientX-rect.left;pointInput.value=Math.max(0,Math.min(200,Math.round((x-scales.L)/(scales.w-scales.L-scales.R)*200)));inspect()});
+new ResizeObserver(draw).observe(document.getElementById('plot'));draw();
+</script></body></html>

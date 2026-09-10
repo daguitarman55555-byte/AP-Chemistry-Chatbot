@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+corpus/*.sqlite
+corpus/chemistry_database.json
+corpus/*_report.json
+corpus/coverage_200_types_per_topic.json
+corpus/graph_models.json
+corpus/phet_catalog.json
+corpus/*.jsonl
+!corpus/visual_sources.jsonl
+corpus/graph_explorer.html
+corpus/CURRICULUM_MAP.md
+corpus/WORKED_EXAMPLES.md
