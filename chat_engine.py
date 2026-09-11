@@ -9,6 +9,7 @@ from units import convert
 from sigfigs import analyze_sig_figs
 from retrieval import Retriever,compact_context
 from teaching_cards import teaching_chunks
+from question_log import record
 from corpus.visual_contract import make_visual_payload
 
 ROOT=Path(__file__).resolve().parent
@@ -49,7 +50,8 @@ class Provider:
         url=getattr(self,'url','https://api.openai.com/v1/responses')
         key=getattr(self,'key','')
         body=dict(model=model,input=history,instructions=instructions,tools=TOOLS,
-                  max_output_tokens=1200,store=False,parallel_tool_calls=False)
+                  max_output_tokens=1200,parallel_tool_calls=False)
+        if getattr(self,'provider','openai')=='openai': body['store']=False
         request=Request(url,data=json.dumps(body).encode(),
                         headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         try:
@@ -58,7 +60,11 @@ class Provider:
                 if len(raw)>2_000_000: raise ProviderError('The model response exceeded the size limit.')
                 return json.loads(raw)
         except HTTPError as exc:
-            raise ProviderError('Model request failed. Check server credentials, model access, quota, and provider status.') from exc
+            detail=''
+            try: detail=exc.read(400).decode('utf-8','replace')
+            except Exception: pass
+            detail=re.sub(r'Bearer\s+\S+','Bearer [redacted]',detail)
+            raise ProviderError(f'Model request failed ({exc.code}). '+(detail[:240] if detail else 'Check credentials, model access, quota, and provider status.')) from exc
         except (URLError,TimeoutError,ValueError) as exc:
             raise ProviderError('The model is unavailable. Your practice tools still work; retry the chat later.') from exc
 
@@ -163,6 +169,7 @@ class Conversation:
         raise ValueError('Unknown tool')
     def chat(self,text):
         if not isinstance(text,str) or not text.strip() or len(text)>6000: raise ValueError('Enter 1–6000 characters')
+        record(text,route='practice_followup' if self.practice else 'chat',provider=getattr(self.provider,'provider','unknown'))
         context=self.catalog.context(text)
         matches=self.catalog.retrieve(text,self.public_question['topic_id'] if self.public_question else None)
         retrieved=compact_context(matches)
