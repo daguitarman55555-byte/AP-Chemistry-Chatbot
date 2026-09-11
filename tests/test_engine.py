@@ -99,6 +99,15 @@ class EngineTests(unittest.TestCase):
             self.assertFalse(body['store']);self.assertEqual(body['model'],'test-model')
             self.assertEqual(request.call_args.args[0].full_url,'https://api.openai.com/v1/responses')
 
+    def test_groq_provider_contract(self):
+        p=Provider(key='fake-groq-key',model='openai/gpt-oss-120b',provider='groq')
+        self.assertTrue(p.configured)
+        self.assertEqual(p.url,'https://api.groq.com/openai/v1/responses')
+        self.assertEqual(p.model,'openai/gpt-oss-120b')
+
+    def test_invalid_provider_rejected(self):
+        with self.assertRaises(ValueError):Provider(provider='unknown')
+
 
 class ConservationTests(unittest.TestCase):
     def test_formula_parentheses_and_ions(self):
