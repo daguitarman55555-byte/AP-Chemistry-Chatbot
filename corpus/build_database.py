@@ -27,8 +27,8 @@ def add(qid,topic,family,prompt,answer,steps,hint_list,misconception,params=None
         review_status='algebra_checked_not_expert_reviewed' if residual is not None else 'authored_not_expert_reviewed',
         parameters=params or {},misconception=misconception))
     solutions.append(dict(question_id=qid,answer=answer,answer_unit=unit,steps=steps,
-        relative_tolerance=0.005 if answer_kind=='numeric' else None,
-        absolute_tolerance=0.005 if unit=='pH' else (1e-14 if answer_kind=='numeric' else None),
+        relative_tolerance=(0 if unit=='pH' else 0.005) if answer_kind=='numeric' else None,
+        absolute_tolerance=0.005 if unit=='pH' else (max(abs(answer)*1e-10,1e-300) if answer_kind=='numeric' else None),
         precision_policy='Retain guard digits; numeric tolerance is not a significant-figure grade.',
         access='teacher_or_backend_only'))
     for i,h in enumerate(hint_list,1): hints.append(dict(question_id=qid,level=i,text=h,reveals_final_answer=False))
@@ -49,15 +49,15 @@ def nadd(family,i,topic,prompt,ans,unit,steps,hints_,mistake,params,residual):
     add(f'{family}-{i:02d}',topic,family,prompt+' Report a numerical answer with units where applicable.',
         ans,steps+[f'Numerical result: {ans:.8g} {unit or ""}.'],hints_,mistake,params,unit,residual)
 
-for i in range(1,26):
+for i in range(1,101):
     # Each family uses distinct displayed inputs, bounded to its model's domain.
     m=1.25+i*0.37; M=58.44; a=m/M
     nadd('moles',i,'1.1',f'A NaCl sample has mass {m:.2f} g. Use molar mass 58.44 g/mol. Find its amount in moles.',a,'mol',
          ['Use n=m/M.',f'n=({m:.2f} g)/(58.44 g/mol).'],['Which conversion connects mass and moles?','Arrange the units so grams cancel.'],
          'Multiplying mass by molar mass.',dict(m=m,M=M),(a*M-m)/m)
-    f=0.2+i*.02; a=20*f+22*(1-f)
-    nadd('isotopes',i,'1.2',f'A hypothetical element has isotope masses 20.00 u and 22.00 u. Their fractional abundances are {f:.2f} and {1-f:.2f}. Find its mean atomic mass.',a,'u',
-         ['Weight each isotope mass by its fraction.',f'mean=20.00*{f:.2f}+22.00*{1-f:.2f}.'],['Are the two isotopes equally abundant?','Multiply each mass by its population fraction before adding.'],
+    f=0.2+i*.005; a=20*f+22*(1-f)
+    nadd('isotopes',i,'1.2',f'A hypothetical element has isotope masses 20.00 u and 22.00 u. Their fractional abundances are {f:.3f} and {1-f:.3f}. Find its mean atomic mass.',a,'u',
+         ['Weight each isotope mass by its fraction.',f'mean=20.00*{f:.3f}+22.00*{1-f:.3f}.'],['Are the two isotopes equally abundant?','Multiply each mass by its population fraction before adding.'],
          'Taking an unweighted mean.',dict(f=f),(22-a)/2-f)
     # Hypothetical Lewis bookkeeping cases, explicitly not asserted to describe stable molecules.
     if i <= 3:
@@ -260,7 +260,7 @@ assert len(topics)==91
 assert len({q['id'] for q in questions})==len(questions)
 assert len({q['prompt'] for q in questions})==len(questions)
 assert set(q['topic_id'] for q in questions)==set(t['id'] for t in topics)
-assert len(checks)==628
+assert len(checks)==2503
 (ROOT/'chemistry_database.json').write_text(json.dumps(data,indent=2,ensure_ascii=False))
 for name in ['topics','questions','solutions','hints','exam_sets','exam_items','archive_audit','sources']:
     (ROOT/(name+'.jsonl')).write_text(''.join(json.dumps(row,ensure_ascii=False)+'\n' for row in data[name]))
@@ -300,7 +300,7 @@ assert not db.execute('PRAGMA foreign_key_check').fetchall()
 db.close()
 
 summary=dict(topics=len(topics),original_questions=len(questions),conceptual_questions=91,lab_data_representation_questions=8,numeric_questions=len(checks),
-             numeric_families=26,numeric_variants_per_family="25 except formal_charge: 3 distinct cases",hints=len(hints),official_exam_sets=len(exam_sets),
+             numeric_families=26,numeric_variants_per_family="100 except formal_charge: 3 distinct cases",hints=len(hints),official_exam_sets=len(exam_sets),
              official_item_references=len(exam_items),copied_official_prompts=0,original_official_exam_solutions=0,
              per_unit_question_counts=dict(collections.Counter(int(q['topic_id'].split('.')[0]) for q in questions)),
              algebra_checks_passed=len(checks),expert_reviewed_items=0,sqlite_integrity='ok')

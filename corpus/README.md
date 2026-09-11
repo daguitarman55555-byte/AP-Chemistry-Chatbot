@@ -1,3 +1,5 @@
+> Historical research snapshot from the initial corpus release. Counts and software-status statements below describe that snapshot. See the repository root README and evidence/coverage.json for the current application, expanded corpus, and remaining gaps.
+
 # AP Chemistry teaching database — research prototype
 
 Prepared September 10, 2026. This package is a reusable foundation for a later chemistry tutor. It is **not a complete collection of past AP Chemistry exams** and is **not a fully validated teaching system**.

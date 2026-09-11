@@ -13,3 +13,7 @@ corpus/*.jsonl
 corpus/graph_explorer.html
 corpus/CURRICULUM_MAP.md
 corpus/WORKED_EXAMPLES.md
+web/node_modules/
+web/dist/
+*.local.json
+.env.*

@@ -1,3 +1,5 @@
+> Historical research snapshot from the initial corpus release. Counts and software-status statements below describe that snapshot. See the repository root README and evidence/coverage.json for the current application, expanded corpus, and remaining gaps.
+
 # AP Chemistry: research findings and tutor design
 
 Research date: September 10, 2026.

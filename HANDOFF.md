@@ -1,30 +1,30 @@
 # Development handoff
 
-## User requirements
+The requested product is an AP Chemistry chatbot that covers the entire course, creates valid questions, and guides students without giving final answers. The breadth target is 200 distinct question types per numbered topic and at least 100 variations within each type. This branch does not meet that target; do not relabel numerical variants to make the numbers appear complete.
 
-Build an AP Chemistry tutor that guides students toward answers without revealing them, generates scientifically valid questions, and creates useful interactive graphs and visuals. Include PhET references where relevant. Track a goal of 200 genuinely distinct question types for each of the 91 numbered topics; do not count numerical variants as new types. Research past exams while respecting copyright and secure exam access boundaries.
+## Implemented in this branch
 
-## What exists
+`server.py` serves a loopback-only React frontend from `web/dist`. `chat_engine.py` manages practice and conversation context and calls the OpenAI Responses API using environment credentials. `tutor.py` grades stored numerical answers and gates authored hints. `chemistry_tools.py` checks bounded arithmetic and atom/charge conservation. `units.py` handles explicit common-unit conversions. `launch.py` prepares assets and starts the app.
 
-The reproducible corpus builds 4,567 question records, 221 authored families, 9,159 hints, 960 graph datasets, and an offline graph explorer. The original numerical subset has 628 items; 3,840 additional items are graph-reading drills, so the counts overstate conceptual breadth if interpreted as distinct skills. The remaining 99 items are conceptual or experimental-reasoning seeds.
+`corpus/rebuild_all.py` produces 12,202 original records and 2,400 graph datasets. `audit.py` generates per-family/per-topic evidence and executes 41 tests. The 121 families with 100 cases consist of 25 numerical chemistry families and 96 graph-task labels; only four graph-literacy operations are involved. The other 100 family labels remain below 100 cases. No expert validation or full course coverage is claimed.
 
-The terminal tutor can expose a prompt, reveal one authored hint at a time between attempts, and check a numeric answer with its stated unit. It cannot evaluate arbitrary intermediate algebra, chemical explanations, alternative units, or general conversation. It is a deterministic backend seed, not an AI chatbot.
+Browser QA uses local Playwright because the cloud browser refused localhost with `ERR_BLOCKED_BY_CLIENT`. The regular Chromium download timed out; a Chromium package from npm was used for local QA, unpacked without archive ownership restoration. The app and browser were launched in the same process environment because standalone command sessions do not share loopback networking here. Do not commit this runtime bundle. See `evidence/QA.md` for actual observed results.
 
-## Outstanding requirements
+## Remaining work, in priority order
 
-1. Full objective/essential-knowledge audit and substantial independent question authorship. No topic meets the 200 validated-type target.
-2. Expert chemistry review, semantic-deduplication review, calibrated difficulty, and better precision policies.
-3. Structured step validators for charge/atom balance, equation setup, reasoning, and equivalent units.
-4. A server and user interface that never ship the answer store or hidden solution graphs to students.
-5. A language-model integration with strict tool boundaries and no-answer conversation tests.
-6. Browser testing of the graph explorer and new renderers for molecules, particle pictures, and energy/cell diagrams.
-7. PhET integration appropriate to the actual product's license; ordinary embeddings do not automatically expose simulation state.
-8. A verified exam/form catalog beyond the limited public references. Do not present copied exams as original work or assume every past exam is public.
+1. Configure the server model externally and run the live evaluation harness. No API key was available during implementation. Fake-provider tests verify contract and tool flow only.
+2. Audit the entire course at objective/essential-knowledge level. Author and independently review genuinely distinct reasoning types; the existing 91 topic labels are only a framework.
+3. Add validated mechanisms for molecular structures, diagrams, coupled and polyprotic equilibria, experimental design, and chemistry-aware written reasoning. Avoid presenting model text as deterministic verification.
+4. Evaluate multi-turn tutoring with real chemistry examples and adversarial prompts. The API never reads the answer store, but model instructions alone cannot guarantee no answer disclosure.
+5. Implement a controlled question-authoring pipeline: domain specification, solver, separate checker, uniqueness/validity checks, and editorial review. Current generation is deterministic finite parameter families, not unrestricted trustworthy authoring.
+6. Extend the official exam/form catalog only from verified public sources. Existing 28 item references do not constitute all past exams. Do not copy protected exam text or ingest secure AP Classroom materials.
+7. Validate PhET runtime links and decide product licensing before any embedding or bundling. Current references point to official projects; no state instrumentation exists.
+8. For public hosting, add user authentication, persistent progress with retention controls, production serving, and robust user/cost limits. The current ephemeral token sessions and loopback server are for local use.
 
-## Validation and constraints
+## Verification discipline
 
-Run `python corpus/rebuild_all.py` and `python -m unittest discover -s tests -v`. Use the coverage data to report real progress. Keep generated outputs out of source control; edit generators and rebuild. The corpus is intentionally hypothetical where constants are not tied to measured substances. Educational calculation models are not instructions for home chemistry experiments.
+Rebuild first, then run `python audit.py`. Tests must reject zero for small nonzero photon energies; an earlier absolute-tolerance bug was fixed. pH uses a dedicated absolute tolerance. Formula checks use explicit ion syntax (`Fe^3+`, `e^-`) and do not guess ambiguous charges. Reactions require spaced plus separators. Unsupported formulas and units must be rejected with an explanation.
 
-The current hint counter only prevents consecutive hint calls without a valid numeric attempt; it is not a robust pedagogy or anti-abuse system. Existing hint text has not undergone an independent leakage audit. The public source repository contains answer-generating code, so it cannot enforce secrecy against someone inspecting the source. The future hosted student interface must enforce separation server-side.
+The `--require-full-coverage` audit gate is intentionally failing until the breadth target is actually reached and reviewed. Preserve that distinction in future reports. Source hashes and CSV inventories make skipped or underdeveloped families visible.
 
-Use isolated branches for later changes and avoid force-pushing over concurrent work. Never commit API credentials, student records, or restricted exam content.
+Use isolated branches and non-force ref updates. Never commit credentials, student conversations, or restricted exam content. Generated corpus exports, frontend dependencies/build assets, and live evaluation logs remain ignored.

@@ -1,3 +1,5 @@
+> Historical research snapshot from the initial corpus release. Counts and software-status statements below describe that snapshot. See the repository root README and evidence/coverage.json for the current application, expanded corpus, and remaining gaps.
+
 # Interactive visuals, PhET, and question breadth
 
 ## Implemented artifacts
