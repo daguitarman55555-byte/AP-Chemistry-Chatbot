@@ -5,6 +5,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from chat_engine import Catalog,Conversation,Provider,ProviderError
 from chemistry_tools import check_step,check_balance
+from units import convert,supported_units
+from sigfigs import analyze_sig_figs,round_sig_figs,decimal_value
 
 ROOT=Path(__file__).resolve().parent
 class App:
@@ -49,7 +51,7 @@ def handler_for(app):
         def do_GET(self):
             if not self.allowed(): return self.send(403,{'error':'Local origin required'})
             path=urlsplit(self.path).path
-            if path=='/api/catalog': return self.send(200,app.catalog.public()|{'model_configured':app.provider.configured})
+            if path=='/api/catalog': return self.send(200,app.catalog.public()|{'model_configured':app.provider.configured,'conversion_units':supported_units()})
             if path=='/api/evidence':
                 file=ROOT/'evidence/coverage.json'
                 return self.send(200,json.loads(file.read_text()) if file.exists() else {'status':'Run python audit.py first'})
@@ -83,6 +85,12 @@ def handler_for(app):
                         result=c.practice.submit(payload.get('text',''),payload.get('unit'))
                     elif path=='/api/step': result=check_step(payload.get('expression'),payload.get('claimed'))
                     elif path=='/api/balance': result=check_balance(payload.get('equation'))
+                    elif path=='/api/convert':
+                        raw=payload.get('value');value=float(decimal_value(raw))
+                        answer=convert(value,payload.get('from_unit'),payload.get('to_unit'))
+                        figures=payload.get('sig_figs')
+                        result={'status':'converted','value':round_sig_figs(str(answer),figures) if figures else format(answer,'.12g'),'unit':payload.get('to_unit')}
+                    elif path=='/api/sigfigs': result=analyze_sig_figs(payload.get('value'),payload.get('expected'))
                     elif path=='/api/chat': result=c.chat(payload.get('text'))
                     elif path=='/api/graph':
                         if c.practice: raise ValueError('End practice before exploring another graph')
