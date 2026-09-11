@@ -5,6 +5,8 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from tutor import TutorSession
 from chemistry_tools import check_step,check_balance
+from units import convert
+from sigfigs import analyze_sig_figs
 from corpus.visual_contract import make_visual_payload
 
 ROOT=Path(__file__).resolve().parent
@@ -17,6 +19,8 @@ STR={'type':'string'}
 TOOLS=[function('check_reaction_balance','Check a student-provided reaction for atom and charge conservation. Use spaces around plus separators and charge syntax Fe^3+. Never supplies coefficients.',{'equation':STR}),
        function('find_topics','Find AP Chemistry topic context and source references.',{'query':STR}),
        function('check_arithmetic_step','Check only a student-provided expression and student-provided result. No numerical result is disclosed. Cannot verify chemical setup.',{'expression':STR,'claimed':{'type':'number'}}),
+       function('convert_units','Convert a student-provided value between supported compatible units.',{'value':{'type':'number'},'from_unit':STR,'to_unit':STR}),
+       function('count_significant_figures','Count significant figures from the student-provided numeric text.',{'value_text':STR}),
        function('show_graph','Show an available original model for exploration only when the student requested a graph. Use a family id from the available catalog, variant 1 to 100. No arbitrary code or equations.',{'family_id':STR,'variant':{'type':'integer','minimum':1,'maximum':100}})]
 
 class ProviderError(Exception): pass
@@ -132,6 +136,15 @@ class Conversation:
             if expression not in user_text or str(claimed) not in user_text:
                 return {'status':'attempt_needed','message':'Ask the student to enter expression = claimed number in the step checker.'},None
             return check_step(expression,claimed),None
+        if name=='convert_units':
+            value=args.get('value');source=args.get('from_unit');target=args.get('to_unit')
+            if not all(str(x) in user_text for x in (value,source,target)):
+                return {'status':'givens_needed','message':'Ask the student for the value and both units.'},None
+            return {'status':'converted','value':convert(value,source,target),'unit':target},None
+        if name=='count_significant_figures':
+            raw=args.get('value_text','')
+            if raw not in user_text:return {'status':'value_needed','message':'Ask the student to enter the number exactly as written.'},None
+            return analyze_sig_figs(raw),None
         if name=='show_graph':
             if self.practice: return {'status':'practice_active','message':'Use only the supplied question stimulus during practice.'},None
             if not re.search(r'graph|plot|visual|curve|chart',user_text,re.I):
