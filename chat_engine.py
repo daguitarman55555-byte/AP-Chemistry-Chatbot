@@ -8,6 +8,7 @@ from chemistry_tools import check_step,check_balance
 from units import convert
 from sigfigs import analyze_sig_figs
 from retrieval import Retriever,compact_context
+from teaching_cards import teaching_chunks
 from corpus.visual_contract import make_visual_payload
 
 ROOT=Path(__file__).resolve().parent
@@ -76,7 +77,7 @@ class Catalog:
         for topic_id,question,solution_json in rows:
             solution=json.loads(solution_json)
             chunks.append({'topic_id':topic_id,'title':self.topic_map[topic_id]['label'],'question':question,'text':solution['answer'],'source_url':self.topic_map[topic_id]['source_url']})
-        self.retriever=Retriever(chunks)
+        self.retriever=Retriever(chunks+teaching_chunks(self.topic_map))
     def connect(self): return sqlite3.connect(f'file:{self.path}?mode=ro',uri=True)
     def context(self,query):
         terms=set(re.findall(r'[a-z0-9]+',query.lower()))
@@ -170,7 +171,7 @@ class Conversation:
         normalize=lambda s: re.sub(r'\s+',' ',s.strip().lower()).rstrip('?.!')
         if not self.practice and matches and normalize(text)==normalize(matches[0]['question']):
             top=matches[0]
-            answer='Let us work through '+top['title'].lower()+'. What quantities are given, and what relationship could connect them?'
+            answer=top.get('guiding_questions',['Let us work through '+top['title'].lower()+'. What quantities are given, and what relationship could connect them?'])[0]
             self.messages.extend([{'role':'user','content':text},{'role':'assistant','content':answer}]);self.messages=self.messages[-20:]
             return dict(status='local_retrieval',message=answer,sources=[{'topic_id':top['topic_id'],'label':top['title'],'source_url':top['source_url']}],route='local_guidance',provider_calls=0)
         if not self.provider.configured:
