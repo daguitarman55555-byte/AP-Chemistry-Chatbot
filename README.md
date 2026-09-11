@@ -26,6 +26,7 @@ This server binds to your computer's loopback address. It is not a public classr
 - 24 original graph models, each with 100 parameter sets, interactive coordinate inspection, labeled axes, and accessible 201-row data tables.
 - LaTeX and `\ce{...}` chemical notation using KaTeX with untrusted commands disabled.
 - A bounded, server-side Responses API tool loop, retained conversation context, curriculum references, error handling, and honest verification labels.
+- Local-first retrieval over 91 authored curriculum chunks. Exact conceptual matches avoid a provider call; other queries send at most three compact chunks and eight recent messages to economize tokens. Active practice excludes its topic's answer chunk.
 - PhET project references matched to topics. Simulations are external references; they are not bundled, embedded, or instrumented.
 - A coverage panel backed by the same reproducible evidence files included here.
 
