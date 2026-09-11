@@ -153,5 +153,22 @@ class UnitConversionTests(unittest.TestCase):
     def test_grader_accepts_converted_units(self):
         c=Catalog();session,_=c.practice('1.1','moles',1)
         self.assertEqual(session.submit(str(session._solution['answer']*1000),'mmol')['status'],'correct')
+    def test_ap_measurement_conversions(self):
+        from units import convert
+        self.assertAlmostEqual(convert(760,'torr','atm'),1)
+        self.assertAlmostEqual(convert(25,'°C','K'),298.15)
+        self.assertAlmostEqual(convert(550,'nm','m'),5.5e-7)
+        self.assertAlmostEqual(convert(1,'kcal','J'),4184)
+
+class SignificantFigureTests(unittest.TestCase):
+    def test_counting_rules(self):
+        from sigfigs import count_sig_figs
+        cases={'17.00':4,'300.':3,'300':1,'0.0470':3,'6.022e23':4,'0.000':3,'1002':4}
+        for value,count in cases.items():self.assertEqual(count_sig_figs(value),count)
+    def test_rounding_preserves_places(self):
+        from sigfigs import round_sig_figs
+        self.assertEqual(round_sig_figs('0.004567',3),'0.00457')
+        self.assertEqual(round_sig_figs('12.345',4),'12.35')
+        self.assertEqual(round_sig_figs('0',3),'0.00')
 
 if __name__=='__main__':unittest.main()
