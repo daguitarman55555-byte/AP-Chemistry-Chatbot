@@ -23,7 +23,7 @@ class ProviderError(Exception): pass
 class Provider:
     def __init__(self,key=None,model=None):
         self.key=key if key is not None else os.getenv('OPENAI_API_KEY','')
-        self.model=model if model is not None else os.getenv('OPENAI_MODEL','')
+        # Luna is the cost-controlled default; deployments can select a stronger\n        # compatible Responses API model without changing application code.\n        self.model=model if model is not None else os.getenv('OPENAI_MODEL','gpt-5.6-luna')
     @property
     def configured(self): return bool(self.key and self.model)
     def respond(self,history,instructions):
