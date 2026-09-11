@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from chat_engine import Catalog, Conversation, Provider
 from test_engine import FakeProvider, message, call
 
@@ -29,3 +30,11 @@ class RetrievalRegressions(unittest.TestCase):
         r=Conversation(self.catalog,FakeProvider([a,b])).chat('Help with equilibrium')
         self.assertEqual(r['provider_calls'],2)
         self.assertEqual(r['usage']['total_tokens'],280)
+
+    def test_questions_are_recorded_locally(self):
+        from question_log import record,open_log
+        with tempfile.NamedTemporaryFile(suffix='.sqlite') as f:
+            record('How does a catalyst affect activation energy?','session-1',path=f.name)
+            with open_log(f.name) as con:
+                row=con.execute('select question,reviewed from user_questions').fetchone()
+            self.assertEqual(row,('How does a catalyst affect activation energy?',0))
