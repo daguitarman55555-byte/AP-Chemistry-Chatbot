@@ -21,16 +21,31 @@ TOOLS=[function('check_reaction_balance','Check a student-provided reaction for 
 
 class ProviderError(Exception): pass
 class Provider:
-    def __init__(self,key=None,model=None):
-        self.key=key if key is not None else os.getenv('OPENAI_API_KEY','')
-        # Luna is the cost-controlled default; deployments can select a stronger\n        # compatible Responses API model without changing application code.\n        self.model=model if model is not None else os.getenv('OPENAI_MODEL','gpt-5.6-luna')
+    def __init__(self,key=None,model=None,provider=None):
+        selected=(provider or os.getenv('AI_PROVIDER','openai')).strip().lower()
+        if selected not in ('openai','groq'):
+            raise ValueError('AI_PROVIDER must be openai or groq')
+        self.provider=selected
+        if selected=='groq':
+            self.key=key if key is not None else os.getenv('GROQ_API_KEY','')
+            self.model=model if model is not None else os.getenv('GROQ_MODEL','openai/gpt-oss-120b')
+            self.url='https://api.groq.com/openai/v1/responses'
+        else:
+            self.key=key if key is not None else os.getenv('OPENAI_API_KEY','')
+            self.model=model if model is not None else os.getenv('OPENAI_MODEL','gpt-5.6-luna')
+            self.url='https://api.openai.com/v1/responses'
     @property
     def configured(self): return bool(self.key and self.model)
     def respond(self,history,instructions):
-        body=dict(model=self.model,input=history,instructions=instructions,tools=TOOLS,
+        # getattr fallbacks keep the request path safe for lightweight contract
+        # doubles that bypass __init__, while normal instances use validated data.
+        model=getattr(self,'model','')
+        url=getattr(self,'url','https://api.openai.com/v1/responses')
+        key=getattr(self,'key','')
+        body=dict(model=model,input=history,instructions=instructions,tools=TOOLS,
                   max_output_tokens=1200,store=False,parallel_tool_calls=False)
-        request=Request('https://api.openai.com/v1/responses',data=json.dumps(body).encode(),
-                        headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
+        request=Request(url,data=json.dumps(body).encode(),
+                        headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         try:
             with urlopen(request,timeout=35) as response:
                 raw=response.read(2_000_001)
