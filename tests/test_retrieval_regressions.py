@@ -33,8 +33,9 @@ class RetrievalRegressions(unittest.TestCase):
 
     def test_questions_are_recorded_locally(self):
         from question_log import record,open_log
-        with tempfile.NamedTemporaryFile(suffix='.sqlite') as f:
-            record('How does a catalyst affect activation energy?','session-1',path=f.name)
-            with open_log(f.name) as con:
+        with tempfile.TemporaryDirectory() as directory:
+            path=directory+'/questions.sqlite'
+            record('How does a catalyst affect activation energy?','session-1',path=path)
+            with open_log(path) as con:
                 row=con.execute('select question,reviewed from user_questions').fetchone()
             self.assertEqual(row,('How does a catalyst affect activation energy?',0))
