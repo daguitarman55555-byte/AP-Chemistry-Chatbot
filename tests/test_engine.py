@@ -93,7 +93,9 @@ class EngineTests(unittest.TestCase):
             def __exit__(self,*args):pass
             def read(self,n):return json.dumps(message('Which quantity is conserved?')).encode()
         with patch('chat_engine.urlopen',return_value=Response()) as request:
-            p=Provider(key='fake-key-for-contract-test',model='test-model')
+            # Select the provider explicitly so a developer's real
+            # AI_PROVIDER environment cannot change this contract test.
+            p=Provider(key='fake-key-for-contract-test',model='test-model',provider='openai')
             p.respond([{'role':'user','content':'test'}],'system')
             body=json.loads(request.call_args.args[0].data)
             self.assertFalse(body['store']);self.assertEqual(body['model'],'test-model')
@@ -104,6 +106,12 @@ class EngineTests(unittest.TestCase):
         self.assertTrue(p.configured)
         self.assertEqual(p.url,'https://api.groq.com/openai/v1/responses')
         self.assertEqual(p.model,'openai/gpt-oss-120b')
+
+    def test_groq_selected_from_environment(self):
+        with patch.dict('os.environ',{'AI_PROVIDER':'groq','GROQ_API_KEY':'test','GROQ_MODEL':'openai/gpt-oss-120b'},clear=True):
+            p=Provider()
+        self.assertTrue(p.configured)
+        self.assertEqual(p.url,'https://api.groq.com/openai/v1/responses')
 
     def test_invalid_provider_rejected(self):
         with self.assertRaises(ValueError):Provider(provider='unknown')
