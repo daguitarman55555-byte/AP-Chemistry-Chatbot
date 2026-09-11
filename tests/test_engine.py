@@ -36,6 +36,16 @@ class EngineTests(unittest.TestCase):
             with self.subTest(topic=topic['id']):
                 s,q=self.catalog.practice(topic['id'])
                 self.assertEqual(q['topic_id'],topic['id']);self.assertNotIn('answer',q);self.assertNotIn('steps',q)
+    def test_local_retrieval_is_ranked_and_bounded(self):
+        matches=self.catalog.retrieve('Why do helium and neon equal masses have different atoms?')
+        self.assertEqual(matches[0]['topic_id'],'1.1');self.assertLessEqual(len(matches),3)
+    def test_local_rag_avoids_provider_call(self):
+        fake=FakeProvider([]);r=Conversation(self.catalog,fake).chat('Why do equal masses of helium and neon contain different numbers of atoms?')
+        self.assertEqual(r['status'],'local_retrieval');self.assertEqual(r['provider_calls'],0)
+    def test_active_practice_excludes_its_answer_chunk(self):
+        fake=FakeProvider([message('Which quantity should you compare first?')]);c=Conversation(self.catalog,fake)
+        c.start('1.1','moles',1);c.chat('Why do equal masses of helium and neon contain different numbers of atoms?')
+        self.assertNotIn('smaller molar mass',fake.requests[0][1])
     def test_graph_question_receives_visible_stimulus(self):
         _,q=self.catalog.practice('3.4','graph-gas_pv-read',1)
         self.assertEqual(len(q['visual']['points']),201)
